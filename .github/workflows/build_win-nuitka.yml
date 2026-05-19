@@ -1,0 +1,27 @@
+name: Build GrokPromptManager_multiport WIN (Nuitka)
+on: [push]
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - run: |
+          python -m pip install --upgrade pip
+          pip install nuitka
+          pip install Pillow opencv-python pygame
+      - shell: powershell
+        run: |
+          $nArgs = @('--standalone', '--windows-console-mode=disable', '--assume-yes-for-downloads', '--enable-plugin=tk-inter', '--windows-icon-from-ico=logo.ico', '--include-data-files=art.png=art.png', '--include-data-files=ikd_logo.ico=ikd_logo.ico', '--include-data-files=intro.MP3=intro.MP3', '--include-data-files=intro.mp4=intro.mp4', '--include-data-files=logo.ico=logo.ico', '--include-data-files=logo.png=logo.png')
+          $exts = @('*.png', '*.jpg', '*.jpeg', '*.gif', '*.json', '*.ikd', '*.mp3')
+          foreach ($ext in $exts) { Get-ChildItem -Path . -Filter $ext -File | ForEach-Object { $nArgs += "--include-data-files=$($_.Name)=$($_.Name)" } }
+          $excludeDirs = @('.git', '.github', 'dist', 'build', '__pycache__', 'venv')
+          Get-ChildItem -Directory | Where-Object { $_.Name -notin $excludeDirs } | ForEach-Object { $nArgs += "--include-data-dir=$($_.Name)=$($_.Name)" }
+          $nArgs += '--output-filename=GrokPromptManager_multiport.exe'
+          $nArgs += 'GrokPromptManager_multiport.py'
+          & python -m nuitka $nArgs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GrokPromptManager_multiport-Win-Nuitka
+          path: GrokPromptManager_multiport.dist
